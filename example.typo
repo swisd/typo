@@ -1,0 +1,19 @@
+program example;
+
+// the test file
+
+typ INT i32;
+
+args add {
+    define a as INT;
+    define b as INT;
+}
+
+fn add(a, b) -> INT {
+    return a + b;
+}
+
+fn main() -> None {
+    prn("Hello World");
+    prn(add(5, 10));
+}
