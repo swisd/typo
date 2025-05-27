@@ -1,13 +1,21 @@
 <program> = [ <statement> ... ]
 
+// name must be defined
+<prog-name> = "program" <name>
+
 // type definition (required for everything)
-<type> = "typ" <name> <resolution> // 'resolution' is the `definition` of the type
+<type> = "typ" <name> <resolution> // 'resolution' is the `definition` of the type, can be another type
 
 // item association
 <assoc> = "define" <IDENT> "as" <type>
 
+// function arg definition
+<func-args> = "args" <name> "{" <args> "}" // ,\n sep
+
 // functions
 <function> = "fn" "(" <args> ")" "->" <return-type> "{" <body> "}"
+
+//function return
 
 //class return
 <class-rtrn> = "repr" <name> "{" <body> "}" // f-string returns (with type) or type of returns (<body> = return <var> ":" <type>)
