@@ -3,8 +3,20 @@
 // type definition (required for everything)
 <type> = "typ" <name> <resolution> // 'resolution' is the `definition` of the type
 
+// item association
+<assoc> = "define" <IDENT> "as" <type>
+
 // functions
-<function> = "fn" "(" <args> ")" "{" <body> "}"
+<function> = "fn" "(" <args> ")" "->" <return-type> "{" <body> "}"
+
+//class return
+<class-rtrn> = "repr" <name> "{" <body> "}" // f-string returns (with type) or type of returns (<body> = return <var> ":" <type>)
+
+//class-args
+<class-args> = "struct" <name> "{" <args> "}" // args are comma seperated
+
+// classes
+<class> = "cls" <name> "{" <body> "}"
 
 // if statements
 <if-stmt> = "if" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}"
