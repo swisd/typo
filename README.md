@@ -20,6 +20,6 @@ fn add(a, b) -> INT {
 
 fn main() -> None {
     prn("Hello World");
-    prn(add(5, 10))
+    prn(add(5, 10));
 }
 ```
