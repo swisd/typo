@@ -1,0 +1,60 @@
+//
+// Created by intellij-pest on 2025-05-27
+// grammar
+// Author: n12
+//
+
+// src/grammar.pest
+
+// Whitespace and comments are ignored by default if you use the `_` rule
+WHITESPACE = _{ " " | "\t" | "\n" }
+
+// Operators as rules (can also be simple strings if not used in expression trees)
+PLUS  = { "+" }
+MINUS = { "-" }
+TIMES = { "*" }
+DIV   = { "/" }
+POW   = { "^" }
+EQ    = { "=" }
+LPAREN = { "(" }
+RPAREN = { ")" }
+COMMA = { "," }
+
+// Common types
+IDENT = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+NUMBER = @{ ('0'..'9')+ ~ ("." ~ ('0'..'9')+)? ~ (("e"|"E") ~ ("+" | "-")? ~ ('0'..'9')+)? }
+//           ^^^^^^^^^                   ^^^^^^^^^                               ^^^^^^^^^
+//           Changed to single quotes around 0..9
+
+// Top-level entry point
+start = { statement+ }
+
+// Statements
+statement = { assignment | function_def | expr }
+
+assignment = { IDENT ~ EQ ~ expr }
+
+// func_def_head is implicitly handled within function_def rule
+function_def = { IDENT ~ LPAREN ~ IDENT ~ RPAREN ~ EQ ~ expr }
+
+// Expression rules - defined with explicit precedence
+// This is done implicitly by Pest's rule ordering: later rules bind tighter (higher precedence).
+// You can also use explicit precedence climbing, but this direct approach is often clearer.
+expr = { sum }
+sum = { product ~ ((PLUS | MINUS) ~ product)* }
+product = { power ~ ((TIMES | DIV) ~ power)* }
+power = { unary ~ (POW ~ power)? } // Right-associative power
+unary = { (PLUS | MINUS)? ~ primary }
+primary = {
+    NUMBER
+    | function_call_expr // <--- Move this before IDENT
+    | IDENT              // <--- Move this after function_call_expr
+    | LPAREN ~ expr ~ RPAREN
+}
+
+// Define the new named rule
+function_call_expr = { IDENT ~ LPAREN ~ expr_list? ~ RPAREN } // <--- New named rule
+
+expr_list = { expr ~ (COMMA ~ expr)* }
+
+// Implicit multiplication hack is handled *before* parsing, in the Rust code.
