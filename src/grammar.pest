@@ -57,4 +57,3 @@ function_call_expr = { IDENT ~ LPAREN ~ expr_list? ~ RPAREN } // <--- New named 
 
 expr_list = { expr ~ (COMMA ~ expr)* }
 
-// Implicit multiplication hack is handled *before* parsing, in the Rust code.
