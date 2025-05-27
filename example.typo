@@ -16,20 +16,20 @@ var pi: FLOAT &mut = 3.14159;
 var myVariable: str = "hello";
 
 args add {
-    define a as INT;
-    define b as INT;
+    define: a as INT;
+    define: b as INT;
 }
 args sub {
-    define a as INT;
-    define b as INT;
+    define: a as INT;
+    define: b as INT;
 }
 args mul {
-    define a as INT;
-    define b as INT;
+    define: a as INT;
+    define: b as INT;
 }
 args div {
-    define a as INT;
-    define b as INT;
+    define: a as INT;
+    define: b as INT;
 }
 
 repr Math {
