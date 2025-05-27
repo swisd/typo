@@ -1,0 +1,33 @@
+<program> = [ <statement> ... ]
+
+// type definition (required for everything)
+<type> = "typ" <name> <resolution> // 'resolution' is the `definition` of the type
+
+// functions
+<function> = "fn" "(" <args> ")" "{" <body> "}"
+
+// if statements
+<if-stmt> = "if" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}"
+
+// if-else statements
+<ie-stmt> = "if" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}" "else" "{" <body> "}"
+//                                                     ^^^^^^
+//                                                    on elif, repeat 'if' grammar
+
+// for loops
+<loop-for> = "for" "(" <var> <start> <stop> <step> ")" "{" <body> "}"
+
+// while loops
+<loop-while> = "while" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}"
+
+// if variable (non mutable)
+<assignment> = "var" <var> ":" <type> "=" <statement> // could also be <data>
+
+// if variable (mutable)
+<assignment> = "var" <var> ":" <type> "&mut" "=" <statement> // could also be <data>
+
+// if constant
+<assignment> = "const" <var> ":" <type> "=" <statement> // could also be <data>
+
+// if static (reference (cross-file))
+<assignment> = "static ref" <var> ":" <type> "=" <statement> // could also be <data>
