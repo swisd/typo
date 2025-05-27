@@ -34,8 +34,8 @@
 
 // if-else statements
 <ie-stmt> = "if" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}" "else" "{" <body> "}"
-//                                                     ^^^^^^
-//                                                    on elif, repeat 'if' grammar
+//                                                                 ^^^^^^
+//                                                              on elif, repeat 'if' grammar
 
 // for loops
 <loop-for> = "for" "(" <var> <start> <stop> <step> ")" "{" <body> "}"
