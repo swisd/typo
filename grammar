@@ -1,5 +1,8 @@
 <program> = [ <statement> ... ]
 
+// every line that doe not end in "}" or ")" must end with a semicolon
+
+
 // name must be defined
 <prog-name> = "program" <name>
 
