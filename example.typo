@@ -51,8 +51,38 @@ cls Math {
     }
 }
 
+args compare {
+    define x as INT
+    define y as INT
+    define op as STR
+}
+
+fn compare(x, y, op) -> BOOL {
+    if ( arg::op == ">" ) {
+        if ( arg::x > arg::y ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    if ( arg::op == "<" ) {
+       if ( arg::x < arg::y ) {
+           return true;
+       } else {
+           return false;
+       }
+    }
+    if ( arg::op == "=" ) {
+        if ( arg::x == arg::y ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
 
 fn main() -> None {
     prn("Hello World");
     prn(Math::add(5, 10));
+    prn(compare(1, 2, "<"))
 }
