@@ -21,7 +21,7 @@
 //function return
 
 //class return
-<class-rtrn> = "repr" <name> "{" <body> "}" // f-string returns (with type) or type of returns (<body> = return <var> ":" <type>)
+<class-rtrn> = "repr" <name> "{" <body> "}" // f-string returns (with type) or type of returns (<body> = return <var> ":" <type>) (default return is 'return')
 
 //class-args
 <class-args> = "struct" <name> "{" <args> "}" // args are comma seperated
