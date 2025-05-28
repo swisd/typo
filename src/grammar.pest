@@ -1,59 +1,81 @@
 //
-// Created by intellij-pest on 2025-05-27
 // grammar
 // Author: n12
 //
 
 // src/grammar.pest
 
-// Whitespace and comments are ignored by default if you use the `_` rule
-WHITESPACE = _{ " " | "\t" | "\n" }
+program = { SOI ~ statement* ~ EOI }
 
-// Operators as rules (can also be simple strings if not used in expression trees)
-PLUS  = { "+" }
-MINUS = { "-" }
-TIMES = { "*" }
-DIV   = { "/" }
-POW   = { "^" }
-EQ    = { "=" }
-LPAREN = { "(" }
-RPAREN = { ")" }
-COMMA = { "," }
-
-// Common types
-IDENT = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
-NUMBER = @{ ('0'..'9')+ ~ ("." ~ ('0'..'9')+)? ~ (("e"|"E") ~ ("+" | "-")? ~ ('0'..'9')+)? }
-//           ^^^^^^^^^                   ^^^^^^^^^                               ^^^^^^^^^
-//           Changed to single quotes around 0..9
-
-// Top-level entry point
-start = { statement+ }
-
-// Statements
-statement = { assignment | function_def | expr }
-
-assignment = { IDENT ~ EQ ~ expr }
-
-// func_def_head is implicitly handled within function_def rule
-function_def = { IDENT ~ LPAREN ~ IDENT ~ RPAREN ~ EQ ~ expr }
-
-// Expression rules - defined with explicit precedence
-// This is done implicitly by Pest's rule ordering: later rules bind tighter (higher precedence).
-// You can also use explicit precedence climbing, but this direct approach is often clearer.
-expr = { sum }
-sum = { product ~ ((PLUS | MINUS) ~ product)* }
-product = { power ~ ((TIMES | DIV) ~ power)* }
-power = { unary ~ (POW ~ power)? } // Right-associative power
-unary = { (PLUS | MINUS)? ~ primary }
-primary = {
-    NUMBER
-    | function_call_expr // <--- Move this before IDENT
-    | IDENT              // <--- Move this after function_call_expr
-    | LPAREN ~ expr ~ RPAREN
+statement = _{
+      prog_name
+    | type_def
+    | assoc
+    | func_args
+    | function
+    | class_rtrn
+    | class_args
+    | class
+    | if_stmt
+    | if_else_stmt
+    | loop_for
+    | loop_while
+    | assignment
+    | (!("}" | ")") ~ ANY)+ ~ semi
+    | rti
 }
 
-// Define the new named rule
-function_call_expr = { IDENT ~ LPAREN ~ expr_list? ~ RPAREN } // <--- New named rule
+word = {
+      "#" //declaration
+    | "!" //inverse
+    | "?" //logical result
+}
 
-expr_list = { expr ~ (COMMA ~ expr)* }
+prog_name = { "program" ~ name ~ semi }
+type_def = { "typ" ~ name ~ resolution ~ semi }
+assoc = { "define:" ~ IDENT ~ "as" ~ type_ ~ semi }
+func_args = { "args" ~ name ~ "{" ~ args ~ "}" }
+function = { "fn" ~ "(" ~ args ~ ")" ~ "->" ~ return_type ~ "{" ~ body ~ "}" }
+class_rtrn = { "repr" ~ name ~ "{" ~ body ~ "}" }
+class_args = { "struct" ~ name ~ "{" ~ args ~ "}" }
+class = { "cls" ~ name ~ "{" ~ body ~ "}" }
 
+if_stmt = { "if" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" }
+if_else_stmt = {
+    "if" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" ~
+    ("else" ~ "{" ~ body ~ "}" | ("else" ~ if_stmt))?
+}
+
+loop_for = { "for" ~ "(" ~ var ~ start ~ stop ~ step ~ ")" ~ "{" ~ body ~ "}" }
+loop_while = { "while" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" }
+
+assignment = {
+      "var" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
+    | "var" ~ var ~ ":" ~ type_ ~ "&mut" ~ "=" ~ statement ~ semi
+    | "const" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
+    | "static ref" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
+}
+
+args = { (IDENT ~ ("," ~ NEWLINE? ~ IDENT)*)? }
+body = { (statement)* }
+
+semi = _{ ";" }
+
+rti = { ASCII_HEX_DIGIT }
+
+name = @{ ASCII_ALPHANUMERIC+ }
+IDENT = @{ ASCII_ALPHANUMERIC+ }
+type_ = _{ name }
+resolution = { name }
+var = { IDENT }
+start = { number }
+stop = { number }
+step = { number }
+return_type = { type_ }
+
+operator = _{ "==" | "!=" | "<" | ">" | "<=" | ">=" }
+
+number = @{ ASCII_DIGIT+ }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
