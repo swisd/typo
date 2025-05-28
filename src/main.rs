@@ -150,177 +150,18 @@ lazy_static! {
 
 // --- Expression Evaluator (Same as before) ---
 fn eval_expr(expr: &Expr, local_vars: &HashMap<Ident, f64>) -> Result<f64, EvalError> {
-    match expr {
-        Expr::Number(n) => Ok(*n),
-        Expr::Var(name) => {
-            if let Some(val) = local_vars.get(name) {
-                Ok(*val)
-            } else if let Some(val) = VARS_TABLE.lock().unwrap().get(name) {
-                Ok(*val)
-            } else if let Some(val) = CONSTANTS.get(name) {
-                Ok(*val)
-            } else {
-                Err(EvalError::UndefinedVariable(name.clone()))
-            }
-        }
-        Expr::BinOp(left, op, right) => {
-            let l_val = eval_expr(left, local_vars)?;
-            let r_val = eval_expr(right, local_vars)?;
-            match op {
-                BinOp::Add => Ok(l_val + r_val),
-                BinOp::Sub => Ok(l_val - r_val),
-                BinOp::Mul => Ok(l_val * r_val),
-                BinOp::Div => {
-                    if r_val == 0.0 {
-                        Err(EvalError::MathError("Division by zero".to_string()))
-                    } else {
-                        Ok(l_val / r_val)
-                    }
-                }
-                BinOp::Pow => Ok(l_val.powf(r_val)),
-            }
-        }
-        Expr::UnaryMinus(expr) => Ok(-eval_expr(expr, local_vars)?),
-        Expr::FuncCall(name, args_exprs) => {
-            let args: Result<Vec<f64>, EvalError> = args_exprs.iter()
-                .map(|arg_expr| eval_expr(arg_expr, local_vars))
-                .collect();
-            let args = args?; // Propagate error if any arg evaluation fails
-
-            if let Some(func) = BUILTINS.get(name) {
-                func(&args)
-            } else if let Some((param_name, body)) = FUNCS_TABLE.lock().unwrap().get(name) {
-                if args.len() != 1 {
-                    return Err(EvalError::ArityMismatch(name.clone(), 1, args.len()));
-                }
-                let mut new_locals = local_vars.clone(); // Clone to extend with param
-                new_locals.insert(param_name.clone(), args[0]);
-                eval_expr(body, &new_locals)
-            } else {
-                Err(EvalError::UndefinedFunction(name.clone()))
-            }
-        }
-        Expr::Paren(expr) => eval_expr(expr, local_vars),
-    }
+    // none
 }
 
 
 // --- AST Building from Pest Pairs ---
 // This is where you convert Pest's generic parse tree into your strongly-typed AST.
 fn parse_expr(pair: Pair<Rule>) -> Result<Expr, EvalError> {
-    let expr = match pair.as_rule() {
-        // These are the top-level expression rules, they operate on the current 'pair' directly
-        Rule::expr | Rule::sum => {
-            let mut terms = pair.into_inner();
-            let mut expr = parse_expr(terms.next().unwrap())?;
-
-            while let Some(op) = terms.next() {
-                let rhs = parse_expr(terms.next().unwrap())?;
-                expr = match op.as_rule() {
-                    Rule::PLUS => Expr::BinOp(Box::new(expr), BinOp::Add, Box::new(rhs)),
-                    Rule::MINUS => Expr::BinOp(Box::new(expr), BinOp::Sub, Box::new(rhs)),
-                    _ => unreachable!(),
-                };
-            }
-            expr
-        },
-        Rule::product => {
-            let mut factors = pair.into_inner();
-            let mut expr = parse_expr(factors.next().unwrap())?;
-
-            while let Some(op) = factors.next() {
-                let rhs = parse_expr(factors.next().unwrap())?;
-                expr = match op.as_rule() {
-                    Rule::TIMES => Expr::BinOp(Box::new(expr), BinOp::Mul, Box::new(rhs)),
-                    Rule::DIV => Expr::BinOp(Box::new(expr), BinOp::Div, Box::new(rhs)),
-                    _ => unreachable!(),
-                };
-            }
-            expr
-        },
-        Rule::power => {
-            let mut base_and_exp = pair.into_inner();
-            let base = parse_expr(base_and_exp.next().unwrap())?;
-
-            if let Some(_op) = base_and_exp.next() { // Changed to _op as it's not used
-                let exponent = parse_expr(base_and_exp.next().unwrap())?;
-                Expr::BinOp(Box::new(base), BinOp::Pow, Box::new(exponent))
-            } else {
-                base
-            }
-        },
-        Rule::unary => {
-            let mut inner = pair.into_inner();
-            if inner.peek().map(|p| p.as_rule() == Rule::PLUS || p.as_rule() == Rule::MINUS).unwrap_or(false) {
-                let op = inner.next().unwrap();
-                let expr = parse_expr(inner.next().unwrap())?;
-                match op.as_rule() {
-                    Rule::MINUS => Expr::UnaryMinus(Box::new(expr)),
-                    Rule::PLUS => expr,
-                    _ => unreachable!(),
-                }
-            } else {
-                parse_expr(inner.next().unwrap())?
-            }
-        },
-        // **THIS IS THE CRITICAL CHANGE AREA**
-        // Rule::primary directly contains its children, so we get the inner pair FIRST.
-        Rule::primary => {
-            // Get the single inner rule that 'primary' contains
-            let primary_inner_pair = pair.into_inner().next().unwrap(); // consumes 'pair' here
-
-            match primary_inner_pair.as_rule() { // Now match on this inner pair
-                Rule::NUMBER => Expr::Number(primary_inner_pair.as_str().parse::<f64>().map_err(|e| EvalError::ParseError(format!("Invalid number: {}", e)))?),
-                Rule::IDENT => Expr::Var(primary_inner_pair.as_str().to_string()),
-                Rule::function_call_expr => {
-                    // Pass primary_inner_pair (which is Rule::function_call_expr) directly
-                    // to a helper function, or handle it here if it's cleaner.
-                    // Let's integrate the logic directly here for now, using primary_inner_pair
-                    let mut call_parts = primary_inner_pair.into_inner(); // This consumes primary_inner_pair
-                    let func_name = call_parts.next().unwrap().as_str().to_string(); // This gets IDENT `f`
-
-                    let mut args = Vec::new();
-                    for arg_pair in call_parts { // Iterate over the remaining children of function_call_expr
-                        match arg_pair.as_rule() {
-                            Rule::expr_list => {
-                                for expr_in_list in arg_pair.into_inner() {
-                                    args.push(parse_expr(expr_in_list)?);
-                                }
-                            },
-                            Rule::expr => { // If it's a single expr
-                                args.push(parse_expr(arg_pair)?);
-                            },
-                            _ => {
-                                return Err(EvalError::ParseError(format!("Unexpected token in function arguments: {:?}", arg_pair.as_rule())));
-                            }
-                        }
-                    }
-                    Expr::FuncCall(func_name, args)
-                },
-                Rule::expr => Expr::Paren(Box::new(parse_expr(primary_inner_pair)?)), // Pass the inner expr
-                _ => unreachable!(),
-            }
-        },
-        // Direct matches for NUMBER and IDENT at the top level of `expr` (if they are direct children of an expression rule)
-        // These are redundant if 'primary' always handles them, but good to keep if grammar allows direct matches.
-        Rule::NUMBER => Expr::Number(pair.as_str().parse::<f64>().map_err(|e| EvalError::ParseError(format!("Invalid number: {}", e)))?),
-        Rule::IDENT => Expr::Var(pair.as_str().to_string()),
-        _ => {
-            return Err(EvalError::ParseError(format!("Unexpected expression rule: {:?}", pair.as_rule())));
-        }
-    };
-    Ok(expr)
+    // none
 }
 // --- REPL and File Runner (Mostly same, but with Pest parsing) ---
 
-lazy_static! {
-    static ref IMPLICIT_MULT_REGEX1: Regex = Regex::new(r"(\d)([A-Za-z\(])").unwrap();
-    static ref IMPLICIT_MULT_REGEX2: Regex = Regex::new(r"(\))(\d|[A-Za-z\(])").unwrap();
-}
-
 fn preprocess_line(mut line: String) -> String {
-    line = IMPLICIT_MULT_REGEX1.replace_all(&line, r"$1*$2").to_string();
-    line = IMPLICIT_MULT_REGEX2.replace_all(&line, r"$1*$2").to_string();
     line
 }
 
@@ -333,75 +174,6 @@ fn repl(line: &str) {
     }
 
     let preprocessed_line = preprocess_line(line.to_string());
-
-    // Pest parsing step
-    match MathParser::parse(Rule::start, &preprocessed_line) {
-        Ok(mut pairs) => {
-            let start_pair = pairs.next().unwrap(); // This is `Rule::start`
-
-            // Get the inner content of the 'start' rule, which should be the first statement.
-            // For a REPL line, we generally expect only one statement.
-            let outer_stmt_pair = start_pair.into_inner().next().unwrap(); // This is `Rule::statement`
-
-            // Now, we need to match on the `outer_stmt_pair` which IS `Rule::statement`.
-            // Then, its *inner* pair will be the actual assignment, func_def, or expr.
-            match outer_stmt_pair.as_rule() {
-                Rule::statement => { // Handle the Rule::statement itself
-                    let actual_stmt_pair = outer_stmt_pair.into_inner().next().unwrap(); // This gets the inner specific statement type
-
-                    match actual_stmt_pair.as_rule() { // Now match against the *actual* statement rule
-                        Rule::assignment => {
-                            let mut inner_pairs = actual_stmt_pair.into_inner();
-                            let name = inner_pairs.next().unwrap().as_str().to_string(); // This gets IDENT "x"
-                            // inner_pairs.next().unwrap(); // Consume the EQ sign -- Add this line!
-                            let _eq_token = inner_pairs.next().unwrap(); // Consume the EQ token, no need to store it
-                            let expr_pair = inner_pairs.next().unwrap(); // This now correctly gets the 'expr' Pair for "10"
-
-                            match parse_expr(expr_pair) {
-                                Ok(expr) => {
-                                    match eval_expr(&expr, &HashMap::new()) {
-                                        Ok(val) => {
-                                            VARS_TABLE.lock().unwrap().insert(name.clone(), val);
-                                            println!("= {}", val);
-                                        },
-                                        Err(e) => eprintln!("Error during assignment evaluation: {}", e),
-                                    }
-                                },
-                                Err(e) => eprintln!("Error building AST: {}", e),
-                            }
-                        },
-                        Rule::function_def => {
-                            let mut inner_pairs = actual_stmt_pair.into_inner();
-                            let func_name = inner_pairs.next().unwrap().as_str().to_string();
-                            let param_name = inner_pairs.next().unwrap().as_str().to_string();
-                            let body_expr_pair = inner_pairs.next().unwrap();
-                            match parse_expr(body_expr_pair) {
-                                Ok(body_expr) => {
-                                    FUNCS_TABLE.lock().unwrap().insert(func_name.clone(), (param_name, body_expr));
-                                    // No immediate evaluation for function definition
-                                }
-                                Err(e) => eprintln!("Error building AST for function body: {}", e),
-                            }
-                        }
-                        Rule::expr => { // Bare expression statement
-                            match parse_expr(actual_stmt_pair) { // Pass the expr pair directly
-                                Ok(expr) => {
-                                    match eval_expr(&expr, &HashMap::new()) {
-                                        Ok(val) => println!("= {}", val),
-                                        Err(e) => eprintln!("Error: {}", e),
-                                    }
-                                }
-                                Err(e) => eprintln!("Error building AST: {}", e),
-                            }
-                        }
-                        _ => eprintln!("Parsing Error: Unexpected specific statement type: {:?}", actual_stmt_pair.as_rule()),
-                    }
-                }
-                _ => eprintln!("Parsing Error: Expected 'statement' rule (from start), found {:?}", outer_stmt_pair.as_rule()),
-            }
-        }
-        Err(e) => eprintln!("Parsing Error: {}", e),
-    }
 }
 
 fn run_file(filename: &str) -> Result<(), Box<dyn Error>> {
