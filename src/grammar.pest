@@ -5,7 +5,9 @@
 
 // src/grammar.pest
 
-program = { SOI ~ statement* ~ EOI }
+IDENT = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+program = { SOI ~ (statement ~ (";" | NEWLINE)*)* ~ EOI }
 
 statement = _{
       prog_name
@@ -16,13 +18,14 @@ statement = _{
     | class_rtrn
     | class_args
     | class
+    | return_stmt
     | if_stmt
     | if_else_stmt
     | loop_for
     | loop_while
     | assignment
-    | (!("}" | ")") ~ ANY)+ ~ semi
-    | rti
+    | return_stmt
+    | expr_stmt
 }
 
 word = {
@@ -31,51 +34,60 @@ word = {
     | "?" //logical result
 }
 
-prog_name = { "program" ~ name ~ semi }
-type_def = { "typ" ~ name ~ resolution ~ semi }
-assoc = { "define:" ~ IDENT ~ "as" ~ type_ ~ semi }
-func_args = { "args" ~ name ~ "{" ~ args ~ "}" }
-function = { "fn" ~ "(" ~ args ~ ")" ~ "->" ~ return_type ~ "{" ~ body ~ "}" }
-class_rtrn = { "repr" ~ name ~ "{" ~ body ~ "}" }
-class_args = { "struct" ~ name ~ "{" ~ args ~ "}" }
-class = { "cls" ~ name ~ "{" ~ body ~ "}" }
 
-if_stmt = { "if" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" }
-if_else_stmt = {
-    "if" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" ~
-    ("else" ~ "{" ~ body ~ "}" | ("else" ~ if_stmt))?
-}
-
-loop_for = { "for" ~ "(" ~ var ~ start ~ stop ~ step ~ ")" ~ "{" ~ body ~ "}" }
-loop_while = { "while" ~ "(" ~ IDENT ~ operator ~ IDENT ~ ")" ~ "{" ~ body ~ "}" }
-
+prog_name = { "program" ~ IDENT }
+type_def = { "typ" ~ IDENT ~ ":" ~ IDENT }
+assoc = { "define:" ~ IDENT ~ "as" ~ IDENT }
+func_args = { "args" ~ IDENT ~ "{" ~ assoc_list? ~ "}" }
+assoc_list = { assoc ~ (sep ~ assoc)* }
+sep = _{ ";" | NEWLINE }
+function = { "fn" ~ IDENT ~ "(" ~ (IDENT ~ ("," ~ IDENT)*)? ~ ")" ~ "->" ~ IDENT ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
+class_rtrn = { "repr" ~ IDENT ~ "{" ~ return_stmt ~ "}" }
+class_args = { "struct" ~ IDENT ~ "{" ~ (assoc ~ ("," ~ assoc)*)? ~ "}" }
+class = { "cls" ~ IDENT ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
+return_stmt = { "return" ~ ":" ~ expression }
+if_stmt = { "if" ~ "(" ~ expression ~ ")" ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
+if_else_stmt = { "if" ~ "(" ~ expression ~ ")" ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" ~ "else" ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
+loop_for = { "for" ~ "(" ~ IDENT ~ "," ~ expression ~ "," ~ expression ~ "," ~ expression ~ ")" ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
+loop_while = { "while" ~ "(" ~ expression ~ ")" ~ "{" ~ (statement ~ (";" | NEWLINE)*)* ~ "}" }
 assignment = {
-      "var" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
-    | "var" ~ var ~ ":" ~ type_ ~ "&mut" ~ "=" ~ statement ~ semi
-    | "const" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
-    | "static ref" ~ var ~ ":" ~ type_ ~ "=" ~ statement ~ semi
+      "var" ~ IDENT ~ ":" ~ IDENT ~ ("&mut")? ~ "=" ~ expression
+    | "const" ~ IDENT ~ ":" ~ IDENT ~ "=" ~ expression
+    | "static ref" ~ IDENT ~ ":" ~ IDENT ~ "=" ~ expression
 }
 
+
+expr_stmt = { expression }
 args = { (IDENT ~ ("," ~ NEWLINE? ~ IDENT)*)? }
 body = { (statement)* }
 
-semi = _{ ";" }
-
 rti = { ASCII_HEX_DIGIT }
 
-name = @{ ASCII_ALPHANUMERIC+ }
-IDENT = @{ ASCII_ALPHANUMERIC+ }
-type_ = _{ name }
+name = @{ (ASCII_ALPHANUMERIC | "_")+ }
+
+type_ = _{ name }  // Or a more detailed type parser
+semi = _{ ";" }
 resolution = { name }
 var = { IDENT }
 start = { number }
 stop = { number }
 step = { number }
-return_type = { type_ }
+return_type = { "return:" ~ type_ }
 
-operator = _{ "==" | "!=" | "<" | ">" | "<=" | ">=" }
+comparator = _{ "==" | "!=" | "<" | ">" | "<=" | ">=" }
+operator = _{ "+" | "-" | "/" | "*" | "**"}
 
-number = @{ ASCII_DIGIT+ }
+expression = _{ infix_expr }
+infix_expr = { term ~ (operator ~ term)* }
+
+term = _{ IDENT | literal | "(" ~ expression ~ ")" }
+function_call = { IDENT ~ "(" ~ (expression ~ ("," ~ expression)*)? ~ ")" }
+
+literal = _{ number | string | boolean }
+number = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+boolean = { "true" | "false" }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
-NEWLINE = _{ "\r\n" | "\n" | "\r" }
+NEWLINE = _{ "\r\n" | "\n" }
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* }

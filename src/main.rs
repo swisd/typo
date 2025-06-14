@@ -1,12 +1,13 @@
 // TYPO compiler
 
+use std::env;
+use std::fs;
+use crate::parser::parse;
 
 mod interp;
 mod parser;
 
-fn main() -> Result<(), String> {
-    let raw_file: String = std::fs::read_to_string("test.typo").expect("Cannot read TYPO file");
-    let ast_root: Vec<Box<AstNode>> = typo::parser::parse(source: &raw_file).expect("unsuccessful parse");
-    interp::interp(ast_root)?;
-    Ok(())
+fn main() {
+    let input = fs::read_to_string("C:/RS/typo/src/test.typo").unwrap();
+    parser::parse(&*input);
 }
