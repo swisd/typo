@@ -1,0 +1,9 @@
+program pmi;
+
+// smaller test file for specific testing
+
+typ INT i32;
+typ FLOAT f64;
+
+
+var pi: FLOAT &mut = 3.14159;

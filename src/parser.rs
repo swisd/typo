@@ -29,6 +29,9 @@ impl Error {
     fn handle(&self) { // returns an error log, similar to python
         println!("ERROR: ln {} :: {} ", self.line, self.message);
     }
+    fn at(&self) {
+        println!("ERROR at ln {} :: {} ", self.line, self.message);
+    }
 }
 
 pub(crate) fn parse(source: &str) {
@@ -41,7 +44,7 @@ pub(crate) fn parse(source: &str) {
             }
         }
         Err(err) => {
-            eprintln!("Error: {}", err);
+            eprintln!("Parse Error: {}", err);
         }
     }
 }

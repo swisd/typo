@@ -41,13 +41,13 @@ cls Math {
         return a + b;
     }
     fn sub(a, b) -> INT {
-        return a + b;
+        return a - b;
     }
     fn mul(a, b) -> INT {
-        return a + b;
+        return a * b;
     }
     fn div(a, b) -> INT {
-        return a + b;
+        return a / b;
     }
 }
 
