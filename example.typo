@@ -13,7 +13,8 @@ typ USIZE usize;
 var pi: FLOAT &mut = 3.14159;
 
 // you can also use the builtin types
-var myVariable: str = "hello";
+var myVariable&5 : str = "hello";
+// string variables must have a defined size '&<size>'
 
 args add {
     define: a as INT;
