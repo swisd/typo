@@ -41,13 +41,17 @@
 <loop-while> = "while" "(" <IDENT> <operator> <IDENT> ")" "{" <body> "}"
 
 // if variable (non mutable)
-<assignment> = "var" <var> ":" <type> "=" <statement> // could also be <data>
+// <assignment> = "var" <var> ":" <type> "=" <statement> // could also be <data>
+
+// variable
+var <IDENT> "&" <length> ":" <type> "=" <statement>
+
 
 // if variable (mutable)
-<assignment> = "var" <var> ":" <type> "&mut" "=" <statement> // could also be <data>
+// <assignment> = "var" <var> ":" <type> "&mut" "=" <statement> // could also be <data>
 
 // if constant
-<assignment> = "const" <var> ":" <type> "=" <statement> // could also be <data>
+// <assignment> = "const" <var> ":" <type> "=" <statement> // could also be <data>
 
 // if static (reference (cross-file))
-<assignment> = "static ref" <var> ":" <type> "=" <statement> // could also be <data>
+// <assignment> = "static ref" <var> ":" <type> "=" <statement> // could also be <data>
