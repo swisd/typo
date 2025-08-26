@@ -55,7 +55,7 @@ cls Math {
 args compare {
     define x as INT
     define y as INT
-    define op as STR
+    define op&1 as STR
 }
 
 fn compare(x, y, op) -> BOOL {
