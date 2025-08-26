@@ -44,7 +44,7 @@
 // <assignment> = "var" <var> ":" <type> "=" <statement> // could also be <data>
 
 // variable
-var <IDENT> "&" <length> ":" <type> "=" <statement>
+"var" <IDENT> "&" <length> ":" <type> "=" <statement>
 
 
 // if variable (mutable)
