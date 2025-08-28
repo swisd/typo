@@ -73,6 +73,7 @@ start = { number }
 stop = { number }
 step = { number }
 return_type = { "return:" ~ type_ }
+size = { "&" ~ number }
 
 comparator = _{ "==" | "!=" | "<" | ">" | "<=" | ">=" }
 operator = _{ "+" | "-" | "/" | "*" | "**"}
